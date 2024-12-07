@@ -2,11 +2,12 @@ import os
 from PIL import Image
 import numpy as np
 import xml.etree.ElementTree as ET
+from scipy.io import wavfile
 
 
 
 
-IMPLEMENTED_DATASETS = {"tuberculosis" : "tuberculosis-phonecamera"}
+IMPLEMENTED_DATASETS = {"tuberculosis" : "tuberculosis-phonecamera", "instruments": "instruments"}
 
 
 
@@ -30,7 +31,7 @@ def get_all_implemented_dataset():
     return list(IMPLEMENTED_DATASETS.keys())
 
 def get_dataset(name):
-
+    print("get_datasdet")
     data_path = get_data_path()
     if data_path is None:
         assert False, "No data directory found in your repository, please create one under dataset directory"
@@ -38,6 +39,8 @@ def get_dataset(name):
     path_dataset = os.path.join(data_path, IMPLEMENTED_DATASETS[name])
     if name=="tuberculosis":
         return get_tuberculosis_data(path_dataset)
+    elif name=="instruments":
+        return get_instruments_data(path_dataset)
     assert False, f"No dataset named : {name} implemented"
 
 
@@ -96,3 +99,19 @@ def get_tuberculosis_data(path_dir):
     x, y, file_name = get_data(path_to_download)
     x = np.array(x)
     return x,y,file_name
+
+def get_instruments_data(path_dir):
+    audio_data = []
+    sampling_rates = []
+    files = []
+    for file in os.listdir(path_dir):
+        if file.endswith(".wav"):
+            file_path = os.path.join(path_dir, file)
+            try:
+                sr, y = wavfile.read(file_path)
+                audio_data.append(y)
+                sampling_rates.append(sr)
+                files.append(file)
+            except Exception as e:
+                print(f"Error loading {file}: {e}")
+    return audio_data, sampling_rates, files

@@ -9,5 +9,9 @@
 * take the tuberculosis-phonecamera directory out of the archive directory
 * delete the archive directory
 
+## 2. Insturments dataset
 
+* You can download the zip dataset from 
+[kaggle](https://www.kaggle.com/datasets/soumendraprasad/musical-instruments-sound-dataset)
+* Unzip it in the data directory and place the .wav files under `src/dataset/data/instruments`
 
