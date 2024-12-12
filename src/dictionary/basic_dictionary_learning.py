@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from tqdm import tqdm
 from sklearn.linear_model import LassoLars
 from sklearn.preprocessing import StandardScaler
 
@@ -32,7 +33,7 @@ def algo1(x_loader, m, k, lbd, tmax, steps=3):
 
     scaler = StandardScaler()
 
-    for _ in range(tmax):
+    for _ in tqdm(range(tmax)):
         patch_x = next(x_loader)[0]  # [c, p_h, p_w]
         x = torch.flatten(patch_x)  # [c*p_h*p_w] = [m]
         x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
@@ -46,14 +47,14 @@ def algo1(x_loader, m, k, lbd, tmax, steps=3):
         A += torch.outer(alpha, alpha)
         B += torch.outer(x, alpha)
 
-        all_coeffs_magnitude = torch.abs(A).mean()
-        diagonal_coeffs = torch.diag(A)
-        diagonal_coeffs_magnitude = torch.abs(diagonal_coeffs).mean()
+        # all_coeffs_magnitude = torch.abs(A).mean()
+        # diagonal_coeffs = torch.diag(A)
+        # diagonal_coeffs_magnitude = torch.abs(diagonal_coeffs).mean()
 
-        print("Avg norm of A's coeffs:", all_coeffs_magnitude.item())
-        print(
-            "Avg norm of A's diagonal coeffs:", diagonal_coeffs_magnitude.item(), "\n"
-        )
+        # print("Avg norm of A's coeffs:", all_coeffs_magnitude.item())
+        # print(
+        #     "Avg norm of A's diagonal coeffs:", diagonal_coeffs_magnitude.item(), "\n"
+        # )
 
         D = algo2(D, A, B, steps)
 
