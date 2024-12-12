@@ -26,7 +26,45 @@ def algo2(D, A, B, steps, epsilon=1e-5):
     return D
 
 
-def algo1(x_loader, m, k, lbd, tmax, steps=3):
+def batched_algo1(x_loader, m, k, lbd, tmax, steps=3):
+    A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
+    D = torch.randn(m, k)
+    D = proj_C(D, k)
+
+    scaler = StandardScaler()
+
+    for t in tqdm(range(tmax)):
+        x_patches = next(x_loader)  # [c, p_h, p_w]
+        eta = len(x_patches)
+        delta_A, delta_B = torch.zeros_like(A), torch.zeros_like(B)
+        for x_patch in x_patches:
+            x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
+            x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
+
+            lasso = LassoLars(
+                alpha=0.001, fit_intercept=False
+            )  # TODO: fix the issue of alpha = 0 whis proposed lambda
+            lasso.fit(X=D, y=x)
+            alpha = torch.tensor(lasso.coef_, dtype=torch.float32)
+
+            delta_A += torch.outer(alpha, alpha)
+            delta_B += torch.outer(x, alpha)
+
+        if t < eta:
+            theta = t*eta
+        else:
+            theta = eta**2 + t - eta
+
+        beta = (theta + 1 - eta)/(theta + 1)
+
+        A = beta*A + delta_A
+        B = beta*B + delta_B
+
+        D = algo2(D, A, B, steps)
+
+    return D
+
+def base_algo1(x_loader, m, k, lbd, tmax, steps=3):
     A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
     D = torch.randn(m, k)
     D = proj_C(D, k)
