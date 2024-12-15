@@ -10,7 +10,7 @@ vanilla_transform = transforms.Compose(
 )
 
 
-class PatchDataset(torch.utils.data.Dataset):
+class FlattenedPatchDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         directory,
@@ -32,7 +32,6 @@ class PatchDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         image_idx = idx // self.patches_per_image
-        patch_idx = idx % self.patches_per_image
 
         img = Image.open(self.image_paths[image_idx]).convert("RGB")
 
@@ -40,7 +39,15 @@ class PatchDataset(torch.utils.data.Dataset):
             img = self.transform(img)
 
         patch = self._extract_random_patch(img)
-        return patch
+
+        patch_flat = patch.flatten()
+
+        l2_norm = torch.norm(patch_flat, p=2)
+
+        if l2_norm > 0:
+            patch_flat = patch_flat / l2_norm
+
+        return patch_flat
 
     def _extract_random_patch(self, image):
         _, img_h, img_w = image.shape  # [C, H, W]
@@ -55,3 +62,26 @@ class PatchDataset(torch.utils.data.Dataset):
         x = torch.randint(0, img_w - patch_w + 1, (1,)).item()
 
         return image[:, y : y + patch_h, x : x + patch_w]
+
+class PatchAndFlatenDataset(FlattenedPatchDataset):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def __getitem__(self, idx):
+        image_idx = idx // self.patches_per_image
+
+        img = Image.open(self.image_paths[image_idx]).convert("RGB")
+
+        if self.transform:
+            img = self.transform(img)
+
+        patch = self._extract_random_patch(img)
+
+        patch_flat = patch.flatten()
+
+        l2_norm = torch.norm(patch_flat, p=2)
+
+        if l2_norm > 0:
+            patch_flat = patch_flat / l2_norm
+
+        return patch, patch_flat

@@ -6,6 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 
+from src.dictionary.dictionary_update import dico_update_batched
 
 
 def proj_C(D, k):
@@ -34,15 +35,15 @@ def batched_algo1(x_loader, m, k, tmax, steps=3, lbd=0.001):
     D = torch.randn(m, k)
     D = proj_C(D, k)
 
-    scaler = StandardScaler()
+    # scaler = StandardScaler()
 
     for t in tqdm(range(tmax)):
         x_patches = next(x_loader)  # [c, p_h, p_w]
         eta = len(x_patches)
         delta_A, delta_B = torch.zeros_like(A), torch.zeros_like(B)
-        for x_patch in x_patches:
-            x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
-            x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
+        for x in x_patches:
+            # x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
+            # x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
 
             lasso = LassoLars(
                 alpha=lbd/m, fit_intercept=False
@@ -63,7 +64,8 @@ def batched_algo1(x_loader, m, k, tmax, steps=3, lbd=0.001):
         A = beta*A + delta_A
         B = beta*B + delta_B
 
-        D = algo2(D, A, B, steps)
+        # D = algo2(D, A, B, steps)
+        D = dico_update_batched(D, A, B, steps)
 
     return D
 
@@ -82,7 +84,7 @@ def base_algo1(x_loader, m, k, tmax, steps=3,  lbd=0.001):
 
         lasso = LassoLars(
             alpha=lbd/m, fit_intercept=False
-        )  # TODO: fix the issue of alpha = 0 whis proposed lambda
+        ) 
         lasso.fit(X=D, y=x)
         alpha = torch.tensor(lasso.coef_, dtype=torch.float32)
 

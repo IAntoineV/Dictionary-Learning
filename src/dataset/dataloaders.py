@@ -6,7 +6,7 @@ from torch.utils.data.dataloader import DataLoader
 import xml.etree.ElementTree as ET
 from scipy.io import wavfile
 
-from src.dataset.torch_dataset import PatchDataset
+from src.dataset.torch_dataset import FlattenedPatchDataset
 
 
 IMPLEMENTED_DATASETS = {
@@ -134,13 +134,13 @@ def get_berekley_data_loaders(
     val_dir = os.path.join(path_dir, "val/")
     test_dir = os.path.join(path_dir, "test/")
 
-    train_dataset = PatchDataset(
+    train_dataset = FlattenedPatchDataset(
         train_dir, patch_size=patch_size, patches_per_image=patches_per_image
     )
-    val_dataset = PatchDataset(
+    val_dataset = FlattenedPatchDataset(
         val_dir, patch_size=patch_size, patches_per_image=patches_per_image
     )
-    test_dataset = PatchDataset(
+    test_dataset = FlattenedPatchDataset(
         test_dir, patch_size=patch_size, patches_per_image=patches_per_image
     )
 

@@ -1,5 +1,6 @@
 import torch
-from utils import proj_C
+
+from src.dictionary.utils import proj_C
 
 def dico_update_batched_cv_check(D, A, B, steps=100, epsilon=1e-5, tol=1e-4):
     """
