@@ -29,7 +29,7 @@ def algo2(D, A, B, steps, epsilon=1e-5):
     return D
 
 @ignore_warnings(category=ConvergenceWarning)
-def batched_algo1(x_loader, m, k, lbd, tmax, steps=3, ):
+def batched_algo1(x_loader, m, k, tmax, steps=3, lbd=0.001):
     A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
     D = torch.randn(m, k)
     D = proj_C(D, k)
@@ -43,6 +43,7 @@ def batched_algo1(x_loader, m, k, lbd, tmax, steps=3, ):
         for x_patch in x_patches:
             x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
             x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
+
             lasso = LassoLars(
                 alpha=lbd/m, fit_intercept=False
             )
@@ -67,7 +68,7 @@ def batched_algo1(x_loader, m, k, lbd, tmax, steps=3, ):
     return D
 
 @ignore_warnings(category=ConvergenceWarning)
-def base_algo1(x_loader, m, k, lbd, tmax, steps=3):
+def base_algo1(x_loader, m, k, tmax, steps=3,  lbd=0.001):
     A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
     D = torch.randn(m, k)
     D = proj_C(D, k)
@@ -80,7 +81,7 @@ def base_algo1(x_loader, m, k, lbd, tmax, steps=3):
         x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
 
         lasso = LassoLars(
-            alpha=0.001, fit_intercept=False
+            alpha=lbd/m, fit_intercept=False
         )  # TODO: fix the issue of alpha = 0 whis proposed lambda
         lasso.fit(X=D, y=x)
         alpha = torch.tensor(lasso.coef_, dtype=torch.float32)
