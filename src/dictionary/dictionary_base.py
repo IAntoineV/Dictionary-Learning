@@ -33,7 +33,7 @@ class DictionaryBase:
         :return:
         """
         for x in iterator:
-            self.fit_data(iterator)
+            self.fit_data(x)
             self.t += 1
 
     def fit_data(self, x, **kwargs):
@@ -41,6 +41,8 @@ class DictionaryBase:
         Fit a data or a batch of data to our dictionary.
         """
         raise NotImplementedError
+
+
 
     def update_dictionary(self, **kwargs):
         """
