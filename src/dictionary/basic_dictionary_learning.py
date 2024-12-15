@@ -3,6 +3,9 @@ import numpy as np
 from tqdm import tqdm
 from sklearn.linear_model import LassoLars
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils._testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
+
 
 
 def proj_C(D, k):
@@ -25,8 +28,8 @@ def algo2(D, A, B, steps, epsilon=1e-5):
 
     return D
 
-
-def batched_algo1(x_loader, m, k, lbd, tmax, steps=3):
+@ignore_warnings(category=ConvergenceWarning)
+def batched_algo1(x_loader, m, k, lbd, tmax, steps=3, ):
     A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
     D = torch.randn(m, k)
     D = proj_C(D, k)
@@ -40,10 +43,9 @@ def batched_algo1(x_loader, m, k, lbd, tmax, steps=3):
         for x_patch in x_patches:
             x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
             x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
-
             lasso = LassoLars(
-                alpha=0.001, fit_intercept=False
-            )  # TODO: fix the issue of alpha = 0 whis proposed lambda
+                alpha=lbd/m, fit_intercept=False
+            )
             lasso.fit(X=D, y=x)
             alpha = torch.tensor(lasso.coef_, dtype=torch.float32)
 
@@ -64,6 +66,7 @@ def batched_algo1(x_loader, m, k, lbd, tmax, steps=3):
 
     return D
 
+@ignore_warnings(category=ConvergenceWarning)
 def base_algo1(x_loader, m, k, lbd, tmax, steps=3):
     A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
     D = torch.randn(m, k)
