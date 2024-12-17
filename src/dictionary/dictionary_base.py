@@ -33,8 +33,8 @@ class DictionaryBase:
         os.makedirs(self.save_path, exist_ok=True)
 
     @property
-    def _components(self):
-        return self.D
+    def components_(self):
+        return np.array(self.D).T
     def fit(self, iterator, nb_save = 10, name="exp"):
         """
         :param iterator: Iterable containing batch or single example data.
@@ -70,7 +70,7 @@ class DictionaryBase:
     def load(self, path):
         self.D = torch.load(path)
 
-    def transform(self,X, n_nonzero_coefs=50):
+    def transform(self,X, n_nonzero_coefs=15):
         coefs =[]
         for x in X:
             omp_solver = OrthogonalMatchingPursuit(n_nonzero_coefs=n_nonzero_coefs, fit_intercept=False)
