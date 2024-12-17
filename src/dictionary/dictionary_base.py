@@ -74,7 +74,7 @@ class DictionaryBase:
         coefs =[]
         for x in X:
             omp_solver = OrthogonalMatchingPursuit(n_nonzero_coefs=n_nonzero_coefs, fit_intercept=False)
-            omp_solver.fit(X=self.D, y=X)
+            omp_solver.fit(X=self.D, y=x)
             alpha = omp_solver.coef_
             coefs.append(alpha)
 
