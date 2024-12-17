@@ -1,10 +1,12 @@
 import torch
+import os
 from src.dictionary.dictionary_update import (
     dico_update,
     dico_update_batched,
     dico_update_batched_cv_check,
 )
-
+from sklearn.linear_model import LassoLars
+from sklearn.linear_model import OrthogonalMatchingPursuit
 from src.dictionary.utils import proj_C
 
 IMPLEMENTED_DICTIONARY_UPDATE = {
@@ -26,16 +28,24 @@ class DictionaryBase:
         self.dico_update = dico_update
         self.dic_update_steps = dic_update_steps
         self.t = 0
+        self.save_path = "./dicolearning_exp/"
+        os.makedirs(self.save_path, exist_ok=True)
 
-    def fit(self, iterator):
+    @property
+    def _components(self):
+        return self.D
+    def fit(self, iterator, nb_save = 10, name="exp"):
         """
         :param iterator: Iterable containing batch or single example data.
         :return:
         """
+        total_iterations = len(iterator)
         for x in iterator:
             self.fit_data(x)
             self.update_dictionary()
             self.t += 1
+            if self.t % (total_iterations // nb_save) == 0:
+                self.save(self.save_path + f" {name}_{100*(self.t // (total_iterations // nb_save)) / nb_save}%")
 
     def fit_data(self, x, **kwargs):
         """
@@ -53,3 +63,15 @@ class DictionaryBase:
         """
         update_implementation = IMPLEMENTED_DICTIONARY_UPDATE[self.dico_update]
         self.D = update_implementation(self.D, self.A, self.B, self.dic_update_steps, **kwargs)
+
+    def save(self, path):
+        torch.save(self.D, path)
+    def load(self, path):
+        self.D = torch.load(path)
+
+    def transform(self,X, n_nonzero_coefs=50):
+        omp_solver = OrthogonalMatchingPursuit(n_nonzero_coefs=n_nonzero_coefs, fit_intercept=False)
+        omp_solver.fit(X=self.D, y=X)
+        alpha = torch.tensor(omp_solver.coef_, dtype=torch.float32)
+        return alpha
+
