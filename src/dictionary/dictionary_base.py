@@ -34,6 +34,7 @@ class DictionaryBase:
         """
         for x in iterator:
             self.fit_data(x)
+            self.update_dictionary()
             self.t += 1
 
     def fit_data(self, x, **kwargs):
@@ -51,4 +52,4 @@ class DictionaryBase:
         Online Dictionary Learning for Sparse Coding (2009).
         """
         update_implementation = IMPLEMENTED_DICTIONARY_UPDATE[self.dico_update]
-        return update_implementation(self.D, self.A, self.B, self.dic_update_steps, **kwargs)
+        self.D = update_implementation(self.D, self.A, self.B, self.dic_update_steps, **kwargs)

@@ -6,7 +6,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
 
-from src.dictionary.dictionary_update import dico_update_batched
+from src.dictionary.dictionary_update import dico_update_batched, dico_update_batched_cv_check
 
 
 def proj_C(D, k):
@@ -35,15 +35,15 @@ def batched_algo1(x_loader, m, k, tmax, steps=3, lbd=0.001):
     D = torch.randn(m, k)
     D = proj_C(D, k)
 
-    # scaler = StandardScaler()
+    scaler = StandardScaler()
 
     for t in tqdm(range(tmax)):
         x_patches = next(x_loader)  # [c, p_h, p_w]
         eta = len(x_patches)
         delta_A, delta_B = torch.zeros_like(A), torch.zeros_like(B)
-        for x in x_patches:
-            # x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
-            # x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
+        for x_patch in x_patches:
+            x = torch.flatten(x_patch)  # [c*p_h*p_w] = [m]
+            x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
 
             lasso = LassoLars(
                 alpha=lbd/m, fit_intercept=False
@@ -65,7 +65,7 @@ def batched_algo1(x_loader, m, k, tmax, steps=3, lbd=0.001):
         B = beta*B + delta_B
 
         # D = algo2(D, A, B, steps)
-        D = dico_update_batched(D, A, B, steps)
+        D = dico_update_batched_cv_check(D, A, B)
 
     return D
 
@@ -102,4 +102,31 @@ def base_algo1(x_loader, m, k, tmax, steps=3,  lbd=0.001):
 
         D = algo2(D, A, B, steps)
 
+    return D
+
+def test_algo2_similarities(x_loader, m, k, lbd, tmax, steps=3):
+    A, B = torch.zeros(size=(k, k)), torch.zeros(size=(m, k))
+    D = torch.randn(m, k)
+    D = proj_C(D, k)
+
+    scaler = StandardScaler()
+
+    for _ in tqdm(range(tmax)):
+        patch_x = next(x_loader)[0]  # [c, p_h, p_w]
+        x = torch.flatten(patch_x)  # [c*p_h*p_w] = [m]
+        x = torch.tensor(scaler.fit_transform(x.numpy().reshape(-1, 1)).flatten())
+
+        lasso = LassoLars(
+            alpha=lbd/m, fit_intercept=False
+        ) 
+        lasso.fit(X=D, y=x)
+        alpha = torch.tensor(lasso.coef_, dtype=torch.float32)
+
+        A += torch.outer(alpha, alpha)
+        B += torch.outer(x, alpha)
+
+        D1 = algo2(D, A, B, steps)
+        # D2 = algo2_batched(D,A,B, steps)
+        # print(np.linalg.norm(D1-D2))
+        D = D1
     return D

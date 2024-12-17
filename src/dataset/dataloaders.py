@@ -6,7 +6,7 @@ from torch.utils.data.dataloader import DataLoader
 import xml.etree.ElementTree as ET
 from scipy.io import wavfile
 
-from src.dataset.torch_dataset import FlattenedPatchDataset
+from src.dataset.torch_dataset import FlattenedPatchDataset, NormalizationType
 
 
 IMPLEMENTED_DATASETS = {
@@ -128,20 +128,20 @@ def get_instruments_data(path_dir):
 
 
 def get_berekley_data_loaders(
-    path_dir, patch_size=(16, 16), patches_per_image=5, batch_size=32, **kwargs
+    path_dir, patch_size=(16, 16), patches_per_image=5, batch_size=32, norm_type=NormalizationType.L2, **kwargs
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     train_dir = os.path.join(path_dir, "train/")
     val_dir = os.path.join(path_dir, "val/")
     test_dir = os.path.join(path_dir, "test/")
 
     train_dataset = FlattenedPatchDataset(
-        train_dir, patch_size=patch_size, patches_per_image=patches_per_image
+        train_dir, patch_size=patch_size, patches_per_image=patches_per_image, norm_type=norm_type
     )
     val_dataset = FlattenedPatchDataset(
-        val_dir, patch_size=patch_size, patches_per_image=patches_per_image
+        val_dir, patch_size=patch_size, patches_per_image=patches_per_image, norm_type=norm_type
     )
     test_dataset = FlattenedPatchDataset(
-        test_dir, patch_size=patch_size, patches_per_image=patches_per_image
+        test_dir, patch_size=patch_size, patches_per_image=patches_per_image, norm_type=norm_type
     )
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

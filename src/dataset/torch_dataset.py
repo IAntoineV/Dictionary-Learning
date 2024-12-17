@@ -1,4 +1,5 @@
 import os
+from enum import Enum
 from PIL import Image
 import torch
 from torchvision import transforms
@@ -9,6 +10,11 @@ vanilla_transform = transforms.Compose(
     ]
 )
 
+class NormalizationType(Enum):
+    NONE = "none"
+    L2 = "l2"
+    ZSCORE = "zscore"
+
 
 class FlattenedPatchDataset(torch.utils.data.Dataset):
     def __init__(
@@ -17,6 +23,7 @@ class FlattenedPatchDataset(torch.utils.data.Dataset):
         patch_size=(12, 12),
         patches_per_image=5,
         transform=vanilla_transform,
+        norm_type: NormalizationType=NormalizationType.L2
     ):
         self.image_paths = [
             os.path.join(directory, file)
@@ -26,6 +33,7 @@ class FlattenedPatchDataset(torch.utils.data.Dataset):
         self.patch_size = patch_size
         self.patches_per_image = patches_per_image
         self.transform = transform
+        self.norm_type = norm_type
 
     def __len__(self):
         return self.patches_per_image * len(self.image_paths)
@@ -42,10 +50,7 @@ class FlattenedPatchDataset(torch.utils.data.Dataset):
 
         patch_flat = patch.flatten()
 
-        l2_norm = torch.norm(patch_flat, p=2)
-
-        if l2_norm > 0:
-            patch_flat = patch_flat / l2_norm
+        patch_flat = self._normalize_flat_patch(patch_flat)
 
         return patch_flat
 
@@ -63,6 +68,21 @@ class FlattenedPatchDataset(torch.utils.data.Dataset):
 
         return image[:, y : y + patch_h, x : x + patch_w]
 
+    def _normalize_flat_patch(self, patch_flat):
+        if self.norm_type == NormalizationType.L2:
+            l2_norm = torch.norm(patch_flat, p=2)
+            if l2_norm > 0:
+                patch_flat = patch_flat / l2_norm
+
+        elif self.norm_type == NormalizationType.ZSCORE:
+            mean = patch_flat.mean()
+            std = patch_flat.std()
+            if std > 0:
+                patch_flat = (patch_flat - mean) / std
+
+        return patch_flat
+
+
 class PatchAndFlatenDataset(FlattenedPatchDataset):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -79,9 +99,25 @@ class PatchAndFlatenDataset(FlattenedPatchDataset):
 
         patch_flat = patch.flatten()
 
-        l2_norm = torch.norm(patch_flat, p=2)
-
-        if l2_norm > 0:
-            patch_flat = patch_flat / l2_norm
+        patch_flat = self._normalize_flat_patch(patch_flat)
 
         return patch, patch_flat
+
+
+class PatchDataset(FlattenedPatchDataset):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # self.scaler = StandardScaler()
+    
+    def __getitem__(self, idx):
+        image_idx = idx // self.patches_per_image
+
+        img = Image.open(self.image_paths[image_idx]).convert("RGB")
+
+        if self.transform:
+            img = self.transform(img)
+
+        patch = self._extract_random_patch(img)
+        
+        # patch = torch.tensor(self.scaler.fit_transform(patch.numpy()))
+        return patch

@@ -24,6 +24,7 @@ class DictionaryAlgoBasic(DictionaryBase):
         self.A = self.A.to(self.device)
         self.B = self.B.to(self.device)
 
+    @ignore_warnings(category=ConvergenceWarning)
     def fit_data(self, x):
 
         lasso = self.lasso_function(
@@ -34,6 +35,7 @@ class DictionaryAlgoBasic(DictionaryBase):
         self.A += torch.outer(alpha, alpha)
         self.B += torch.outer(x, alpha)
 
+    @ignore_warnings(category=ConvergenceWarning)
     def get_A_B(self, x):
         lasso = self.lasso_function(
             alpha=self.lbd, fit_intercept=False
@@ -45,10 +47,12 @@ class DictionaryAlgoBasic(DictionaryBase):
         delta_B = torch.outer(x, alpha)
         return delta_A, delta_B
 
+
 class DictionaryAlgoParallel(DictionaryAlgoBasic):
     def __init__(self, m, k, lbd, dico_update = "quick_update", dic_update_steps=100, use_cuda=False, n_jobs=4):
         super().__init__(m, k, lbd,dico_update = dico_update, dic_update_steps=dic_update_steps, use_cuda=use_cuda)
         self.n_jobs = n_jobs
+
     def fit_data(self, x_batch, ):
         x_batch = x_batch.to(self.device)
         eta = len(x_batch)
