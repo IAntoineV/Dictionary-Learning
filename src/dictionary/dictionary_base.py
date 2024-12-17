@@ -1,5 +1,6 @@
 import torch
 import os
+import numpy as np
 from src.dictionary.dictionary_update import (
     dico_update,
     dico_update_batched,
@@ -70,8 +71,12 @@ class DictionaryBase:
         self.D = torch.load(path)
 
     def transform(self,X, n_nonzero_coefs=50):
-        omp_solver = OrthogonalMatchingPursuit(n_nonzero_coefs=n_nonzero_coefs, fit_intercept=False)
-        omp_solver.fit(X=self.D, y=X)
-        alpha = torch.tensor(omp_solver.coef_, dtype=torch.float32)
-        return alpha
+        coefs =[]
+        for x in X:
+            omp_solver = OrthogonalMatchingPursuit(n_nonzero_coefs=n_nonzero_coefs, fit_intercept=False)
+            omp_solver.fit(X=self.D, y=X)
+            alpha = omp_solver.coef_
+            coefs.append(alpha)
+
+        return np.array(coefs)
 
