@@ -2,13 +2,13 @@ import torch
 from joblib import Parallel, delayed
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-
+from src.dictionary.utils import proj_C
 from src.dictionary.dictionary_base import DictionaryBase
 
 class DictionaryAlgoBasic(DictionaryBase):
 
-    def __init__(self, m, k, lbd, dico_update = "quick_update", dic_update_steps=100, use_cuda=False):
-        super().__init__(m, k, lbd, dico_update = dico_update, dic_update_steps=dic_update_steps)
+    def __init__(self, m, k, lbd, dico_update = "quick_update", dic_update_steps=100, use_cuda=False, **kwargs):
+        super().__init__(m, k, lbd, dico_update = dico_update, dic_update_steps=dic_update_steps, **kwargs)
         if use_cuda:
             from cuml import Lasso
             self.lasso_function = Lasso
@@ -34,6 +34,7 @@ class DictionaryAlgoBasic(DictionaryBase):
         alpha = torch.tensor(lasso.coef_, dtype=torch.float32)
         self.A += torch.outer(alpha, alpha)
         self.B += torch.outer(x, alpha)
+        self.nb_data_seen +=1
 
     @ignore_warnings(category=ConvergenceWarning)
     def get_A_B(self, x):
@@ -49,8 +50,8 @@ class DictionaryAlgoBasic(DictionaryBase):
 
 
 class DictionaryAlgoParallel(DictionaryAlgoBasic):
-    def __init__(self, m, k, lbd, dico_update = "quick_update", dic_update_steps=100, use_cuda=False, n_jobs=4):
-        super().__init__(m, k, lbd,dico_update = dico_update, dic_update_steps=dic_update_steps, use_cuda=use_cuda)
+    def __init__(self, m, k, lbd, dico_update = "quick_update", dic_update_steps=100, use_cuda=False, n_jobs=4, **kwargs):
+        super().__init__(m, k, lbd,dico_update = dico_update, dic_update_steps=dic_update_steps, use_cuda=use_cuda, **kwargs)
         self.n_jobs = n_jobs
 
     def fit_data(self, x_batch, ):
@@ -71,4 +72,4 @@ class DictionaryAlgoParallel(DictionaryAlgoBasic):
 
         self.A = beta*self.A + delta_A
         self.B = beta*self.B + delta_B
-
+        self.nb_data_seen += eta

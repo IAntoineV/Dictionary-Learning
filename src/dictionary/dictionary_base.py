@@ -1,6 +1,8 @@
 import torch
 import os
 import numpy as np
+from typing_extensions import override
+
 from src.dictionary.dictionary_update import (
     dico_update,
     dico_update_batched,
@@ -18,7 +20,7 @@ IMPLEMENTED_DICTIONARY_UPDATE = {
 
 
 class DictionaryBase:
-    def __init__(self, m, k, lbd, dico_update="quick_update", dic_update_steps=100):
+    def __init__(self, m, k, lbd, dico_update="quick_update", dic_update_steps=100, verbose=False):
         self.D = torch.randn(m, k)
         self.D = proj_C(self.D)
         self.A = torch.zeros(size=(k, k))
@@ -31,7 +33,9 @@ class DictionaryBase:
         self.t = 0
         self.save_path = "./dicolearning_exp/"
         os.makedirs(self.save_path, exist_ok=True)
-
+        self.nb_data_seen = 0
+        self.verbose=verbose
+        self.device = self.D.device
     @property
     def components_(self):
         return np.array(self.D).T
@@ -41,20 +45,24 @@ class DictionaryBase:
         :return:
         """
         total_iterations = len(iterator)
+
+
         for x in iterator:
-            self.fit_data(x)
-            self.update_dictionary()
+            self.training_step(x)
             self.t += 1
             if self.t % (total_iterations // nb_save) == 0:
-                self.save(self.save_path + f" {name}_{100*(self.t // (total_iterations // nb_save)) / nb_save}%")
+                self.save(self.save_path + f" {name}_{100 * (self.t // (total_iterations // nb_save)) / nb_save}%")
+
+    def training_step(self, x):
+        self.fit_data(x)
+        self.update_dictionary()
+
 
     def fit_data(self, x, **kwargs):
         """
         Fit a data or a batch of data to our dictionary.
         """
         raise NotImplementedError
-
-
 
     def update_dictionary(self, **kwargs):
         """
@@ -67,10 +75,11 @@ class DictionaryBase:
 
     def save(self, path):
         torch.save(self.D, path)
+
     def load(self, path):
         self.D = torch.load(path)
 
-    def transform(self,X, n_nonzero_coefs=15):
+    def transform(self,X, n_nonzero_coefs=50):
         coefs =[]
         for x in X:
             omp_solver = OrthogonalMatchingPursuit(n_nonzero_coefs=n_nonzero_coefs, fit_intercept=False)
@@ -79,4 +88,6 @@ class DictionaryBase:
             coefs.append(alpha)
 
         return np.array(coefs)
+
+
 
