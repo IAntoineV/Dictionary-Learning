@@ -86,3 +86,46 @@ def add_text_noise(
         for x in range(0, width, len(text) * font_size // 2):
             draw.text((x, y), text, font=font, fill=color)
     return img_with_text
+
+
+def get_pacthed_image(image_np, patch_size):
+    """
+    This function encode an image into non overlapping patches (the resulted image is cropped)
+    :param image_np: numpy array of shape (w,l,nb_channels)
+    :param patch_size: patch size used
+    :return: patches: a bunch of patches of size (patch_size, patch_size, nb_channels)
+             cropped_shape: compute the new cropped shape of the image. It is used to reconstruct the image from patches.
+    """
+    w, l, c = image_np.shape
+    k = patch_size
+
+    w_crop = (w // k) * k
+    l_crop = (l // k) * k
+    cropped_shape = (w_crop, l_crop, c)
+    print("w pixel cropped :", w - w_crop, "\n l pixel cropped :", l - l_crop)
+    image_cropped = image_np[:w_crop, :l_crop, :]
+
+    patches = image_cropped.reshape(w_crop // k, k, l_crop // k, k, c)
+    patches = patches.transpose(0, 2, 1, 3, 4)  # (num_patches_h, num_patches_w, k, k, c)
+    patches = np.reshape(patches, (
+    patches.shape[0] * patches.shape[1], patches.shape[2], patches.shape[3], patches.shape[4]))  # num_patches, k, k, c
+    return patches, cropped_shape
+
+
+def get_unpatched_image(patches, image_shape):
+    """
+
+    :param patches: a bunch of patches of size (patch_size, patch_size, nb_channels)
+    :param image_shape: original image shape corresponding to the patches.
+    :return: a numpy array of shape (w,l,nb_channels)
+    """
+    w, l, c = image_shape
+    patch_size = patches.shape[1]
+    k = patch_size
+    num_patches_w = w // k
+    num_patches_l = l // k
+    patches = patches.reshape(num_patches_w, num_patches_l, k, k, c)
+    patches = patches.transpose(0, 2, 1, 3, 4)
+    image = patches.reshape(w, l, c)
+    return image
+
