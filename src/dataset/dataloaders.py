@@ -1,4 +1,6 @@
 import os
+import os.path as osp
+import json
 from PIL import Image
 import numpy as np
 from torch.utils.data.dataloader import DataLoader
@@ -149,3 +151,35 @@ def get_berekley_data_loaders(
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, val_loader, test_loader
+
+
+
+
+def parse_img_boat(data_unparsed):
+    size = len(data_unparsed)
+    assert size == 3 * 80 * 80, "Wrong data feeded"
+    r_channels = data_unparsed[:size // 3]
+    g_channels = data_unparsed[size // 3: 2*size//3]
+    b_channels = data_unparsed[2*size//3:]
+    pixels = np.array([r_channels, g_channels, b_channels], dtype=np.uint8).T
+    pixels = pixels.reshape((80, 80, 3))
+    return pixels
+
+
+def get_boat_data(path_dir):
+    jsondata = json.load(open(osp.join(path_dir, "shipsnet.json")))
+    path_scenes = osp.join(path_dir,  "scenes/scenes/")
+    file_names = os.listdir(path_scenes)
+    images = [ Image.open(osp.join(path_scenes, file_name)).convert("RGB") for file_name in file_names ]
+
+    y_true = np.array(jsondata["labels"])
+    x = np.array(list(map(lambda x: parse_img_boat(x), jsondata["data"])))
+
+    return x,y_true, images, jsondata
+
+
+
+
+
+
+
