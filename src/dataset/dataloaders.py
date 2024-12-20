@@ -116,16 +116,18 @@ def get_instruments_data(path_dir):
     audio_data = []
     sampling_rates = []
     files = []
-    for file in os.listdir(path_dir):
-        if file.endswith(".wav"):
-            file_path = os.path.join(path_dir, file)
-            try:
-                sr, y = wavfile.read(file_path)
-                audio_data.append(y)
-                sampling_rates.append(sr)
-                files.append(file)
-            except Exception as e:
-                print(f"Error loading {file}: {e}")
+
+    for root, _, filenames in os.walk(path_dir):
+        for file in filenames:
+            if file.endswith(".wav"):
+                file_path = os.path.join(root, file)
+                try:
+                    sr, y = wavfile.read(file_path)
+                    audio_data.append(y)
+                    sampling_rates.append(sr)
+                    files.append(file_path)
+                except Exception as e:
+                    print(f"Error loading {file}: {e}")
     return audio_data, sampling_rates, files
 
 
